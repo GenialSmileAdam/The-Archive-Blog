@@ -4,7 +4,6 @@ from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
 import bleach
-import hashlib
 from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
@@ -15,8 +14,9 @@ from typing import List
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
-import secrets
 from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
+
 
 load_dotenv()
 
@@ -25,7 +25,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 ckeditor = CKEditor(app)
 Bootstrap5(app)
-
+# CSFR protection
+csrf = CSRFProtect(app)
 
 
 
@@ -40,6 +41,7 @@ class Base(DeclarativeBase):
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI",'sqlite:///posts.db')
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
+
 gravatar = Gravatar(app,
                     size=100,
                     rating='g',
@@ -49,7 +51,7 @@ gravatar = Gravatar(app,
                     use_ssl=False,
                     base_url=None)
 
-
+# Input sanitization
 def strip_invalid_html(content):
     allowed_tags = ['a', 'abbr', 'acronym', 'address', 'b', 'br', 'div', 'dl', 'dt',
                     'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'img',
@@ -70,8 +72,7 @@ def strip_invalid_html(content):
     return cleaned
 
 
-
-# TODO: Create a User table for all your registered users.
+# User table
 class User(UserMixin, db.Model):
     __tablename__ = "user_table"
 
@@ -84,7 +85,7 @@ class User(UserMixin, db.Model):
     comments : Mapped[List["Comment"]] = relationship(back_populates="author")
 
 
-# CONFIGURE TABLES
+# Blog post table
 class BlogPost(db.Model):
     __tablename__ = "blog_posts"
     author_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"))
@@ -99,7 +100,7 @@ class BlogPost(db.Model):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     img_url: Mapped[str] = mapped_column(String(250), nullable=False)
 
-# TODO: create a comment table
+#  comment table
 class Comment(db.Model):
     __tablename__ = "comments"
     post_id :Mapped[int] = mapped_column(ForeignKey("blog_posts.id"))
@@ -115,7 +116,8 @@ class Comment(db.Model):
 # with app.app_context():
 #     db.create_all()
 
-# create an admin only decorator
+
+# an admin only decorator
 def admin_only(function):
     @wraps(function)
     def wrapper(**kwargs):
@@ -125,12 +127,13 @@ def admin_only(function):
             abort(403)
     return wrapper
 
-# Create a user_loader callback
+#  user_loader callback
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.scalar(db.select(User).where(User.id == user_id) )
 
-# TODO: Use Werkzeug to hash the user's password when creating a new user.
+
+
 @app.route('/register', methods= ["POST", "GET"])
 def register():
     form = RegisterForm()
@@ -160,7 +163,6 @@ def register():
     return render_template("register.html", form = form)
 
 
-# TODO: Retrieve a user from the database based on their email. 
 @app.route('/login', methods= ["POST","GET"])
 def login():
     form = LoginForm()
@@ -240,7 +242,8 @@ def add_new_post():
         db.session.commit()
         return redirect(url_for("get_all_posts"))
     return render_template("make-post.html", form=form)
-# TODO: Use a decorator so only an admin user can edit a post
+
+
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 @admin_only
 def edit_post(post_id):
@@ -263,7 +266,6 @@ def edit_post(post_id):
     return render_template("make-post.html", form=edit_form, is_edit=True)
 
 
-# TODO: Use a decorator so only an admin user can delete a post
 @app.route("/delete/<int:post_id>")
 @admin_only
 def delete_post(post_id):
