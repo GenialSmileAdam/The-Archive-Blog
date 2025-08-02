@@ -293,10 +293,13 @@ def add_new_post():
     return render_template("make-post.html", form=form)
 
 
-@app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
+@app.route("/edit-post", methods=["GET", "POST"])
 @admin_only
-def edit_post(post_id):
-    post = db.get_or_404(BlogPost, post_id)
+def edit_post():
+    post_id = request.args.get("post_id")
+    post  = db.session.scalar(db.select(BlogPost).where(BlogPost.id == post_id))
+
+
     edit_form = CreatePostForm(
         title=post.title,
         subtitle=post.subtitle,
