@@ -14,12 +14,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from typing import List
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
+import os
+import secrets
+from dotenv import load_dotenv
 
-
+load_dotenv()
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+app.config['SECRET_KEY'] = secrets.token_hex(16)
 ckeditor = CKEditor(app)
 Bootstrap5(app)
 
@@ -34,7 +37,7 @@ login_manager.login_view = "login"
 # CREATE DATABASE
 class Base(DeclarativeBase):
     pass
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI",'sqlite:///posts.db')
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 gravatar = Gravatar(app,
@@ -109,23 +112,7 @@ class Comment(db.Model):
 
 
 
-#
-# with app.app_context():
-#     db.create_all()
 
-# with app.app_context():
-# #     new_post = BlogPost(
-# #         title= "Give Your life to Christ",
-# #         subtitle ="He is the way",
-# #         date = "26/07/2025",
-# #         body= "shoutout to the feelings]\nThey show me what I shouldn't trust"
-# #               "\n shoutout to the seasons \n they showed me that God is enough",
-# #         author=db.session.scalar(db.select(User).where(User.id ==1)),
-# #         img_url= "https://www.insightforliving.ca/sites/default/files/article_image/Jesus.jpg",
-# #         author_id = 1)
-# #
-# #     db.session.add(new_post)
-# #     db.session.commit()
 
 # create an admin only decorator
 def admin_only(function):
@@ -134,7 +121,6 @@ def admin_only(function):
         if current_user.id == 1:
             return function()
         else:
-            print("your are an unmarketable tomato")
             abort(403)
     return wrapper
 
@@ -296,5 +282,5 @@ def contact():
     return render_template("contact.html")
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=5001)
 
