@@ -111,9 +111,9 @@ class Comment(db.Model):
 
 
 
-
-with app.app_context():
-    db.create_all()
+#
+# with app.app_context():
+#     db.create_all()
 
 # create an admin only decorator
 def admin_only(function):
