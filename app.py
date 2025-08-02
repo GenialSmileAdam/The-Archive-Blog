@@ -16,9 +16,13 @@ from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
+from email.message import EmailMessage
+import smtplib
 
 
 load_dotenv()
+
+
 
 
 app = Flask(__name__)
@@ -71,6 +75,23 @@ def strip_invalid_html(content):
 
     return cleaned
 
+# Email functionality
+TO_EMAIL = os.getenv('TO_EMAIL')
+MY_EMAIL = os.getenv('MY_EMAIL')
+MY_PASSWORD = os.getenv('MY_PASSWORD')
+
+def send_email(body):
+
+
+    message = EmailMessage()
+    message.set_payload(body, 'utf-8')
+    message.add_header('Subject', 'A Letter from the Archive')
+    message.add_header('To', TO_EMAIL)
+
+    with smtplib.SMTP('smtp.gmail.com', port=587) as connection:
+        connection.starttls()
+        connection.login(user=MY_EMAIL, password=MY_PASSWORD)
+        connection.send_message(msg=message, )
 
 # User table
 class User(UserMixin, db.Model):
@@ -308,8 +329,21 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/contact")
+@app.route("/contact", methods=['POST','GET'])
 def contact():
+    if request.method == 'POST':
+        data = request.form
+        name = data['name']
+        email = data['email']
+        phone= data['phone']
+        message = data['message']
+        send_email(f"Name: {name}\n"
+                   f"Email: {email}\n"
+                   f"Phone No : {phone}\n"
+                   f"Message: {message}")
+
+        flash('Successfully sent your message')
+
     return render_template("contact.html")
 
 if __name__ == "__main__":
