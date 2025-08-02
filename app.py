@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash
+from flask import Flask, abort, render_template, redirect, url_for, flash, request, jsonify
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -84,6 +84,8 @@ class User(UserMixin, db.Model):
     posts : Mapped[List["BlogPost"]] = relationship(back_populates="author")
     comments : Mapped[List["Comment"]] = relationship(back_populates="author")
 
+    def to_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 # Blog post table
 class BlogPost(db.Model):
@@ -99,6 +101,11 @@ class BlogPost(db.Model):
     date: Mapped[str] = mapped_column(String(250), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     img_url: Mapped[str] = mapped_column(String(250), nullable=False)
+
+
+    def to_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
 
 #  comment table
 class Comment(db.Model):
@@ -193,7 +200,30 @@ def logout():
     flash("You have been logged out.")
     return redirect(url_for('get_all_posts'))
 
+#   API functionality
 
+@app.route("/get-all-posts", methods= ["GET"])
+def retrieve_all_posts():
+    posts = db.session.scalars(db.select(BlogPost))
+    list_of_posts = [post.to_dict() for post in posts]
+
+    if request.args.get("password") == os.environ.get("ADMIN_PASSWORD"):
+        return jsonify(num_of_posts = len(list_of_posts), posts=list_of_posts), 200
+    else:
+        abort(401)
+
+@app.route("/get-all-users", methods= ["GET"])
+def retrieve_all_users():
+    users = db.session.scalars(db.select(User))
+    list_of_users = [post.to_dict() for post in users]
+
+    if request.args.get("password") == os.environ.get("ADMIN_PASSWORD"):
+        return jsonify(num_of_users = len(list_of_users), posts=list_of_users), 200
+    else:
+        abort(401)
+
+
+# regular routes
 @app.route('/')
 def get_all_posts():
     result = db.session.execute(db.select(BlogPost))
@@ -202,7 +232,6 @@ def get_all_posts():
     return render_template("index.html", all_posts=posts)
 
 
-# TODO: Allow logged-in users to comment on posts
 @app.route("/post/<int:post_id>", methods=["POST","GET"])
 def show_post(post_id):
     form = CommentForm()
@@ -224,7 +253,6 @@ def show_post(post_id):
     return render_template("post.html", post=requested_post, form= form)
 
 
-# TODO: Use a decorator so only an admin user can create a new post
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
