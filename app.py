@@ -76,7 +76,6 @@ def strip_invalid_html(content):
     return cleaned
 
 # Email functionality
-TO_EMAIL = os.getenv('TO_EMAIL')
 MY_EMAIL = os.getenv('MY_EMAIL')
 MY_PASSWORD = os.getenv('MY_PASSWORD')
 
@@ -86,12 +85,12 @@ def send_email(body):
     message = EmailMessage()
     message.set_payload(body, 'utf-8')
     message.add_header('Subject', 'A Letter from the Archive')
-    message.add_header('To', TO_EMAIL)
+    message.add_header('To', MY_EMAIL)
 
     with smtplib.SMTP('smtp.gmail.com', port=587) as connection:
         connection.starttls()
         connection.login(user=MY_EMAIL, password=MY_PASSWORD)
-        connection.send_message(msg=message, )
+        connection.send_message(msg=message)
 
 # User table
 class User(UserMixin, db.Model):
