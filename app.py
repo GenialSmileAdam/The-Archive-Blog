@@ -226,8 +226,9 @@ def logout():
 def retrieve_all_posts():
     posts = db.session.scalars(db.select(BlogPost))
     list_of_posts = [post.to_dict() for post in posts]
+    admin = db.session.scalar(db.select(User).where(User.id == 1))
+    if check_password_hash(pwhash=admin.password,password=request.args.get("password")):
 
-    if request.args.get("password") == os.environ.get("ADMIN_PASSWORD"):
         return jsonify(num_of_posts = len(list_of_posts), posts=list_of_posts), 200
     else:
         abort(401)
@@ -237,7 +238,9 @@ def retrieve_all_users():
     users = db.session.scalars(db.select(User))
     list_of_users = [post.to_dict() for post in users]
 
-    if request.args.get("password") == os.environ.get("ADMIN_PASSWORD"):
+    admin = db.session.scalar(db.select(User).where(User.id == 1))
+
+    if check_password_hash(pwhash=admin.password,password=request.args.get("password")):
         return jsonify(num_of_users = len(list_of_users), posts=list_of_users), 200
     else:
         abort(401)
