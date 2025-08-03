@@ -29,7 +29,7 @@
             {% endfor %}
             {% endif %}
             {% endwith %}
-            {% for post in all_posts %}
+            {% for post in all_posts[::-1] %}
             <div class="post-preview">
                 <a href="{{ url_for('show_post', post_id=post.id) }}">
                     <h2 class="post-title">{{ post.title }}</h2>
