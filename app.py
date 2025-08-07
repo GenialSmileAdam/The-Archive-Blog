@@ -319,6 +319,27 @@ def edit_post():
         return redirect(url_for("show_post", post_id=post.id))
     return render_template("make-post.html", form=edit_form, is_edit=True)
 
+@app.route("/edit-user", methods=["GET", "POST"])
+@login_required
+def edit_user():
+    user_id = current_user.id
+    user  = db.session.scalar(db.select(User).where(User.id == user_id))
+
+
+    edit_form =RegisterForm(
+        username=user.username,
+        password=user.password,
+        email=user.email
+    )
+    if edit_form.validate_on_submit():
+        user.username= edit_form.username.data
+        user.password = generate_password_hash(edit_form.password.data, method="pbkdf2:sha256", salt_length=8)
+        user.email= edit_form.email.data
+
+        db.session.commit()
+        flash("User details have been successfully changed")
+        return redirect(url_for("get_all_posts"))
+    return render_template("edit_user.html", form=edit_form)
 
 @app.route("/delete/<int:post_id>")
 @admin_only
